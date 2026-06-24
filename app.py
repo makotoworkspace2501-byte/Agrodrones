@@ -220,7 +220,7 @@ def remove_drone(drone_id: int) -> tuple[bool, str]:
     """
     drone = Drone.load(drone_id)
     if drone.status == "в работе":
-        return False, "❌ Нельзя удалить дрона, который находится в работе!"
+        return False, "❌ Нельзя удалить устройство, находящееся в работе!"
     
     drone_dir = os.path.join(DRONE_PARK_DIR, f"drone_{drone_id}")
     if os.path.exists(drone_dir):
@@ -240,7 +240,7 @@ def remove_drone(drone_id: int) -> tuple[bool, str]:
             for row in rows:
                 writer.writerow([row["id"], row["name"]])
     
-    return True, f"✅ Дрон '{drone.name}' удален!"
+    return True, f"✅ Устройство '{drone.name}' удалено!"
 
 # ---------------------------------------------------------------------------
 # ИНТЕРФЕЙС STREAMLIT
@@ -339,25 +339,25 @@ elif page == "🌾 Управление полями":
 elif page == "🚁 Парк дронов":
     st.header("🚁 Парк дронов")
     
-    tab1, tab2 = st.tabs(["➕ Добавить дрон", "📋 Список дронов"])
+    tab1, tab2 = st.tabs(["➕ Добавить устройство", "📋 Список устройств"])
     
     with tab1:
-        st.subheader("Добавление нового дрона")
-        new_drone_name = st.text_input("Введите имя дрона:", key="new_drone")
-        if st.button("Добавить дрон", type="primary"):
+        st.subheader("Добавление нового устройства")
+        new_drone_name = st.text_input("Введите имя устройства:", key="new_drone")
+        if st.button("Добавить устройство", type="primary"):
             if new_drone_name.strip():
                 drones = list_drones()
                 did = next_id(drones)
                 os.makedirs(os.path.join(DRONE_PARK_DIR, f"drone_{did}"), exist_ok=True)
                 append_drone_index(did, new_drone_name)
                 Drone(did, new_drone_name).save()
-                st.success(f"✅ Дрон '{new_drone_name}' (ID {did}) добавлен!")
+                st.success(f"✅ Устройство '{new_drone_name}' (ID {did}) добавлено!")
                 st.rerun()
             else:
-                st.error("❌ Введите имя дрона!")
+                st.error("❌ Введите имя устройства!")
     
     with tab2:
-        st.subheader("Статус дронов")
+        st.subheader("Статус устройств")
         drones = list_drones()
         if drones:
             for did, name in drones:
@@ -444,9 +444,9 @@ elif page == "💧 Обработка полей":
                 while idx < total:
                     available = int(drone.battery // COST_PER_SECTOR)
                     if available == 0:
-                        status_text.text("⚡ Дрон разрядился. Возврат на базу...")
+                        status_text.text("⚡ Устройство разрядилось. Возврат на базу...")
                         drone.charge()
-                        status_text.text("🔋 Дрон заряжен. Продолжаем...")
+                        status_text.text("🔋 Устройство заряжено. Продолжаем...")
                         available = int(drone.battery // COST_PER_SECTOR)
                     
                     batch = min(available, total - idx)
