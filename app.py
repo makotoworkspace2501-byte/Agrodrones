@@ -192,6 +192,56 @@ def next_id(existing: list) -> int:
         return 1
     return max(x[0] for x in existing) + 1
 
+def remove_field(field_id: int):
+    """Удаляет поле и его папку, обновляет index.csv"""
+    field_dir = os.path.join(VIRTUAL_FIELD_DIR, f"field_{field_id}")
+    if os.path.exists(field_dir):
+        import shutil
+        shutil.rmtree(field_dir)
+    
+    # Обновляем index.csv - перезаписываем без удаленной записи
+    idx_path = os.path.join(VIRTUAL_FIELD_DIR, "index.csv")
+    if os.path.exists(idx_path):
+        with open(idx_path, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            rows = [row for row in reader if int(row["id"]) != field_id]
+        
+        with open(idx_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["id", "name"])
+            for row in rows:
+                writer.writerow([row["id"], row["name"]])
+
+#УДАЛЕНИЕ ПОЛЕЙ
+def remove_drone(drone_id: int) -> tuple[bool, str]:
+    """
+    Удаляет дрона и его папку, обновляет index.csv.
+    Возвращает (успех, сообщение).
+    """
+    drone = Drone.load(drone_id)
+    if drone.status == "в работе":
+        return False, "❌ Нельзя удалить дрона, который находится в работе!"
+    
+    drone_dir = os.path.join(DRONE_PARK_DIR, f"drone_{drone_id}")
+    if os.path.exists(drone_dir):
+        import shutil
+        shutil.rmtree(drone_dir)
+    
+    # Обновляем index.csv
+    idx_path = os.path.join(DRONE_PARK_DIR, "index.csv")
+    if os.path.exists(idx_path):
+        with open(idx_path, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            rows = [row for row in reader if int(row["id"]) != drone_id]
+        
+        with open(idx_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["id", "name"])
+            for row in rows:
+                writer.writerow([row["id"], row["name"]])
+    
+    return True, f"✅ Дрон '{drone.name}' удален!"
+
 # ---------------------------------------------------------------------------
 # ИНТЕРФЕЙС STREAMLIT
 # ---------------------------------------------------------------------------
@@ -250,20 +300,21 @@ elif page == "🌾 Управление полями":
             else:
                 st.error("❌ Введите имя поля!")
     
-    with tab2:
+        with tab2:
         st.subheader("Список полей")
         fields = list_fields()
         if fields:
             for fid, name in fields:
                 with st.expander(f"📍 Поле: {name} (ID: {fid})"):
                     field = Field.load(fid, name)
-                    col1, col2 = st.columns(2)
+                    col1, col2, col3 = st.columns([2, 1, 1])
+                    
                     with col1:
                         st.write(f"**Площадь:** {field.area_ha} га")
-                        st.write(f"**Статус:** {'✅ Просканировано' if field.scanned else '⏳ Не сканировалось'}")
+                        st.write(f"**Статус:** {'✅ Просканировано' if field.scanned else ' Не сканировалось'}")
                     
                     with col2:
-                        if st.button("📡 Сканировать", key=f"scan_{fid}"):
+                        if st.button(" Сканировать", key=f"scan_{fid}"):
                             field.scan()
                             st.success("Поле просканировано!")
                             st.rerun()
@@ -273,6 +324,12 @@ elif page == "🌾 Управление полями":
                                 fig = field.visualize()
                                 if fig:
                                     st.pyplot(fig)
+                    
+                    with col3:
+                        if st.button("🗑️ Удалить", key=f"del_{fid}", type="secondary"):
+                            remove_field(fid)
+                            st.success(f"Поле '{name}' удалено!")
+                            st.rerun()
         else:
             st.warning("Полей пока нет. Создайте первое поле!")
 
