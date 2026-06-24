@@ -360,17 +360,25 @@ elif page == "🚁 Парк дронов":
         st.subheader("Статус дронов")
         drones = list_drones()
         if drones:
-            data = []
             for did, name in drones:
                 drone = Drone.load(did)
                 status_icon = "🔋" if drone.status == "на базе" else "✈️"
-                data.append({
-                    "ID": drone.id,
-                    "Имя": drone.name,
-                    "Заряд": f"{drone.battery:.1f}%",
-                    "Статус": f"{status_icon} {drone.status}"
-                })
-            st.dataframe(pd.DataFrame(data), use_container_width=True)
+                
+                with st.expander(f"{status_icon} Дрон: {name} (ID: {did})"):
+                    col1, col2 = st.columns([3, 1])
+                    
+                    with col1:
+                        st.write(f"**Заряд:** {drone.battery:.1f}%")
+                        st.write(f"**Статус:** {drone.status}")
+                    
+                    with col2:
+                        if st.button("🗑️ Удалить", key=f"del_drone_{did}", type="secondary"):
+                            success, message = remove_drone(did)
+                            if success:
+                                st.success(message)
+                            else:
+                                st.error(message)
+                            st.rerun()
         else:
             st.warning("Дронов пока нет. Добавьте первого дрона!")
 
